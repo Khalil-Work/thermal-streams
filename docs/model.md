@@ -1,8 +1,8 @@
 # Model
 
 Thermal Streams analyses heat exchangers with the effectiveness-NTU
-(eps-NTU) method and cross-verifies every result against energy balances
-and the logarithmic mean temperature difference (LMTD) formulation.
+(eps-NTU) method and provides energy-balance diagnostics and a logarithmic mean
+temperature difference (LMTD) cross-check for supported arrangements.
 
 ## Assumptions (all relations below)
 
@@ -63,9 +63,11 @@ whose closed form is used instead:
 eps = NTU / (1 + NTU)
 ```
 
-Numerically the equal-capacity branch is applied whenever
-|C_r - 1| <= 1e-9; the two branches agree continuously there. As
-NTU -> infinity, eps -> 1 for every C_r < 1, with the asymptotic gap
+Numerically, let delta = 1−C_r and E = −expm1(−NTU*delta).
+For unequal capacities the expression is evaluated as E/(delta+C_r*E),
+avoiding cancellation in 1−C_r*exp(−NTU*delta). The equal-capacity limit
+is used only at C_r=1 exactly; nearby unequal cases are not flattened to
+an equality-tolerance plateau. As NTU -> infinity, eps -> 1 for every C_r < 1, with the asymptotic gap
 1 - eps = (1 - C_r) e^{-NTU(1-C_r)} / [1 - C_r e^{-NTU(1-C_r)}].
 
 ### 3. C_r = 0 anchor: condenser / evaporator idealization
@@ -145,9 +147,12 @@ Q = U A dT_lm,       dT_lm = (dT_1 - dT_2) / ln(dT_1 / dT_2)
 with the limit dT_lm = dT_1 when dT_1 = dT_2 (which occurs at C_r = 1 in
 counter flow). This is an independent route to the same duty as the
 eps-NTU relations and is used as the strongest cross-check in the test
-suite. The implementation evaluates dT_lm as
-(dT_1 - dT_2) / log1p((dT_1 - dT_2)/dT_2), which is numerically robust
-when dT_1 and dT_2 are nearly equal.
+suite. With hi=max(dT_1,dT_2), lo=min(dT_1,dT_2), the code uses
+log1p((hi−lo)/lo) near equality and log(hi)−log(lo) for wide ratios.
+The equality limit uses lo+(hi−lo)/2, avoiding overflow in (hi+lo)/2.
+Positive finite inputs spanning 1e-300 to 1e300 are covered by regressions.
+This helper cannot recover information already lost when terminal
+differences are formed by subtracting nearly equal outlet temperatures.
 
 The LMTD method with F = 1 is exact only for parallel and counter flow.
 For the shell-and-tube and crossflow arrangements a geometry correction
@@ -175,9 +180,37 @@ T_c(s) = T_h(s) - dT(s)
 ```
 
 and, for equal capacity rates (k = 0), dT is constant at dT_0 and both
-profiles are linear in s. These reproduce the eps-NTU outlet temperatures
-exactly (verified against the rating solution and against an independent
-RK4 integration of the ODEs).
+profiles are linear in s. The expression above explains the model but
+is poorly conditioned when C_h > C_c at large NTU: dT_0 can round to
+zero while exp(−k A_tot s) grows exponentially.
+
+The implementation instead normalizes the integral of a decaying gap.
+Let b = NTU*(C_max−C_min)/C_max >=0 and
+
+    F(x) = expm1(−b*x) / expm1(−b), with F(x)=x at b=0.
+
+If C_h <= C_c, use x=s and evaluate
+
+    T_h(s) = T_h,in − (Q/C_h) F(s)
+    T_c(s) = T_c,out − (Q/C_c) F(s).
+
+If C_h > C_c, use x=1−s and evaluate backwards from the other end:
+
+    T_h(s) = T_h,out + (Q/C_h) F(1−s)
+    T_c(s) = T_c,in + (Q/C_c) F(1−s).
+
+Both branches stay bounded and avoid an exponentially growing evaluation.
+They reproduce rating endpoints to floating-point precision. Tests check
+the full field against 80-digit arithmetic and independent RK4 solutions
+integrated in the stable direction, including NTU 100. Temperature gaps
+smaller than floating-point resolution may still display as zero; this
+does not invalidate the bounded temperature profiles.
+
+Input configuration numbers are normalized to floats after validation.
+Nonfinite/zero derived conductance UA, NTU or duty raises ValueError,
+including overflow or underflow of an otherwise individually finite input
+combination. Rescale the physical units or operating point rather than
+using an infinite/zero rating as if it were a representable solution.
 
 ## Symbols and units
 

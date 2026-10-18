@@ -74,6 +74,9 @@ CR_COLORS = {
     1.0: "#5B5B5B",
 }
 
+plt.rcParams.update({"figure.facecolor": "white", "axes.facecolor": "white",
+                     "savefig.facecolor": "white", "axes.grid": False})
+
 # Documented counter-flow case (see module docstring).
 CASE = ExchangerConfig(
     flow="counter",
@@ -146,7 +149,6 @@ def profile_figure() -> Path:
     t_c = prof.T_c_K - 273.15
 
     fig, ax = plt.subplots(figsize=(7.2, 4.8))
-    ax.fill_between(s, t_c, t_h, color=GAP_COLOR, alpha=0.18, lw=0)
     ax.plot(s, t_h, color=HOT_COLOR, lw=2.0,
             label=r"hot stream ($C_h$ = 1200 W/K)")
     ax.plot(s, t_c, color=COLD_COLOR, lw=2.0,
@@ -161,13 +163,15 @@ def profile_figure() -> Path:
     ax.annotate(f"cold outlet\n{t_c[0]:.1f} °C", xy=(0.0, t_c[0]),
                 xytext=(0.04, t_c[0] + 0.5), fontsize=8, color=COLD_COLOR)
     ax.annotate(f"hot outlet\n{t_h[-1]:.1f} °C", xy=(1.0, t_h[-1]),
-                xytext=(0.82, t_h[-1] + 3.0), fontsize=8, color=HOT_COLOR)
+                xytext=(0.70, t_h[-1] + 15.0), fontsize=8, color=HOT_COLOR,
+                arrowprops=dict(arrowstyle="-", color=HOT_COLOR, lw=0.7))
     ax.annotate(f"cold inlet\n{t_c[-1]:.1f} °C", xy=(1.0, t_c[-1]),
-                xytext=(0.82, t_c[-1] + 3.0), fontsize=8, color=COLD_COLOR)
+                xytext=(0.70, 23.0), fontsize=8, color=COLD_COLOR, va="top",
+                arrowprops=dict(arrowstyle="-", color=COLD_COLOR, lw=0.7))
 
-    ax.text(0.5, 0.985,
+    ax.text(0.5, 1.015,
             "s = 0: hot inlet / cold outlet      s = 1: hot outlet / cold inlet",
-            transform=ax.transAxes, ha="center", va="top", fontsize=8,
+            transform=ax.transAxes, ha="center", va="bottom", fontsize=8,
             color="#555555")
     ax.set_xlabel(r"fractional transfer area $s = A(s)/A_{tot}$  (dimensionless)")
     ax.set_ylabel(f"Stream temperature (°C)")
@@ -175,7 +179,8 @@ def profile_figure() -> Path:
     ax.set_ylim(15.0, 100.0)
     ax.set_title(
         f"Counter-flow temperature profile: NTU = {res.ntu:.2f}, "
-        f"$C_r$ = {res.c_r:.2f}, $\\varepsilon$ = {res.effectiveness:.4f}"
+        f"$C_r$ = {res.c_r:.2f}, $\\varepsilon$ = {res.effectiveness:.4f}",
+        fontsize=11, pad=28
     )
     ax.legend(loc="upper right", fontsize=9, frameon=True)
     fig.tight_layout()
@@ -192,19 +197,26 @@ def profile_figure() -> Path:
 def animation_gif():
     ntu_frames = np.geomspace(0.25, 12.0, 48)
     c_min = min(CASE.C_h_W_K, CASE.C_c_W_K)
+    profiles = [counter_flow_profile(replace(CASE, A_m2=float(n)*c_min/CASE.U_W_m2K), 241)
+                for n in ntu_frames]
+    with (RESULTS / "animation_profiles.csv").open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.writer(stream)
+        writer.writerow(["frame", "ntu", "s", "T_h_K", "T_c_K"])
+        for i, profile in enumerate(profiles):
+            for station, hot, cold in zip(profile.s, profile.T_h_K, profile.T_c_K):
+                writer.writerow([i, profile.result.ntu, station, hot, cold])
 
     fig, ax = plt.subplots(figsize=(10.0, 6.0), dpi=100)
+    fig.subplots_adjust(left=0.10, right=0.96, bottom=0.12, top=0.84)
 
     def draw(i: int):
         ntu = float(ntu_frames[i])
-        cfg = replace(CASE, A_m2=ntu * c_min / CASE.U_W_m2K)
-        prof = counter_flow_profile(cfg, 241)
+        prof = profiles[i]
         res = prof.result
         t_h = prof.T_h_K - 273.15
         t_c = prof.T_c_K - 273.15
 
         ax.clear()
-        ax.fill_between(prof.s, t_c, t_h, color=GAP_COLOR, alpha=0.15, lw=0)
         ax.plot(prof.s, t_h, color=HOT_COLOR, lw=2.2,
                 label=r"hot stream, $C_h$ = 1200 W/K")
         ax.plot(prof.s, t_c, color=COLD_COLOR, lw=2.2,
@@ -219,12 +231,12 @@ def animation_gif():
         ax.set_ylabel(f"Stream temperature (°C)")
         ax.set_title(
             f"Counter-flow exchanger grown to NTU = {ntu:.2f}   "
-            f"($C_r$ = {res.c_r:.2f})"
+            f"($C_r$ = {res.c_r:.2f})", fontsize=11, pad=30
         )
         ax.text(
-            0.5, 0.985,
+            0.5, 1.015,
             "s = 0: hot inlet / cold outlet      s = 1: hot outlet / cold inlet",
-            transform=ax.transAxes, ha="center", va="top", fontsize=8.5,
+            transform=ax.transAxes, ha="center", va="bottom", fontsize=8.5,
             color="#555555",
         )
         info = (
@@ -353,6 +365,72 @@ def compute_metrics():
     }
 
 
+def conditioning_benchmark():
+    """Save a reproducible 15-case comparison against 80-digit arithmetic."""
+    from stability_reference import decimal_profiles, legacy_forward_profiles
+    from matplotlib.lines import Line2D
+
+    cases = []
+    plot_cases = {}
+    csv_path = RESULTS / "conditioning_profiles.csv"
+    with csv_path.open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.writer(stream)
+        writer.writerow(["ntu", "C_h_W_K", "C_c_W_K", "s", "hot_K", "cold_K",
+                         "reference_hot_K", "reference_cold_K", "legacy_hot_K", "legacy_cold_K"])
+        for ch, cc in [(1200.,2000.), (2000.,1200.), (1500.,1500.),
+                       (1500.,1500.*(1+1e-10)), (1500.*(1+1e-10),1500.)]:
+            for ntu in (4.,50.,100.):
+                cfg = replace(CASE, C_h_W_K=ch, C_c_W_K=cc, A_m2=ntu*min(ch,cc)/CASE.U_W_m2K)
+                profile = counter_flow_profile(cfg, 101)
+                ref_h, ref_c = decimal_profiles(cfg, profile.s)
+                old_h, old_c = legacy_forward_profiles(cfg, profile.s)
+                error = np.maximum(np.abs(profile.T_h_K-ref_h), np.abs(profile.T_c_K-ref_c))
+                old_error = np.maximum(np.abs(old_h-ref_h), np.abs(old_c-ref_c))
+                cases.append({"ntu":ntu, "C_h_W_K":ch, "C_c_W_K":cc,
+                              "max_stable_profile_error_K":float(error.max()),
+                              "max_legacy_profile_error_K":float(old_error.max()),
+                              "hot_outlet_error_K":float(abs(profile.T_h_K[-1]-profile.result.T_h_out_K)),
+                              "cold_inlet_error_K":float(abs(profile.T_c_K[-1]-cfg.T_c_in_K))})
+                writer.writerows(zip([ntu]*101, [ch]*101, [cc]*101, profile.s,
+                                     profile.T_h_K, profile.T_c_K, ref_h, ref_c, old_h, old_c))
+                if ntu == 100 and ch != cc and min(ch,cc) == 1200:
+                    plot_cases[ch] = profile, ref_h, ref_c, old_h, old_c, error, old_error
+    fig, axes = plt.subplots(2, 2, figsize=(11, 7))
+    fig.subplots_adjust(top=0.79, bottom=0.10, hspace=0.38, wspace=0.24)
+    fig.suptitle("Counter-flow conditioning · NTU = 100, both capacity orientations", y=0.985, fontsize=13)
+    fig.legend(handles=[Line2D([],[],color=HOT_COLOR,label="Hot stream (stable)"),
+                        Line2D([],[],color=COLD_COLOR,label="Cold stream (stable)"),
+                        Line2D([],[],color="#555555",ls="--",label="Prior forward evaluation"),
+                        Line2D([],[],color="black",marker="o",ls="none",ms=3,label="80-digit reference")],
+               loc="upper center", bbox_to_anchor=(0.5,0.945), ncol=2, frameon=False, fontsize=9)
+    for col, ch in enumerate((1200.,2000.)):
+        profile, ref_h, ref_c, old_h, old_c, error, old_error = plot_cases[ch]
+        top, bottom = axes[:,col]
+        top.plot(profile.s, profile.T_h_K-273.15, color=HOT_COLOR, lw=2)
+        top.plot(profile.s, profile.T_c_K-273.15, color=COLD_COLOR, lw=2)
+        top.plot(profile.s, old_h-273.15, color="#555555", ls="--", lw=1)
+        top.plot(profile.s, old_c-273.15, color="#555555", ls="--", lw=1)
+        top.plot(profile.s[::10], ref_h[::10]-273.15, "o", color="black", ms=2.5)
+        top.plot(profile.s[::10], ref_c[::10]-273.15, "o", color="black", ms=2.5)
+        top.set(title=f"Ch = {ch:.0f}, Cc = {profile.result.config.C_c_W_K:.0f} W/K",
+                ylabel="Temperature (°C)", xlim=(0,1), ylim=(20,95))
+        bottom.semilogy(profile.s, np.maximum(old_error,1e-14), color="#B06024", label="Prior evaluation")
+        bottom.semilogy(profile.s, np.maximum(error,1e-14), color="#175676", label="Stable evaluation")
+        bottom.set(xlabel="Fractional area from hot inlet", ylabel="Max stream error (K)",
+                   xlim=(0,1), ylim=(4e-15,200))
+        bottom.legend(fontsize=8, loc="upper left")
+    fig.text(0.5,0.018,"Errors against 80-digit reference; displayed floor 1e−14 K. Raw values retained in CSV.",
+             ha="center", fontsize=9, color="#555555")
+    path = RESULTS / "conditioning_comparison.png"
+    fig.savefig(path, dpi=150, facecolor="white")
+    plt.close(fig)
+    report = {"reference_decimal_digits":80, "cases":cases,
+              "max_stable_error_K":max(c["max_stable_profile_error_K"] for c in cases),
+              "max_legacy_error_K":max(c["max_legacy_profile_error_K"] for c in cases)}
+    (RESULTS / "conditioning_metrics.json").write_text(json.dumps(report,indent=2), encoding="utf-8")
+    return report, [path, csv_path, RESULTS / "conditioning_metrics.json"]
+
+
 def run_test_suite():
     proc = subprocess.run(
         [sys.executable, "-m", "pytest", str(REPO), "-q", "--tb=no",
@@ -376,20 +454,25 @@ def main():
     print(f"output dir: {RESULTS}")
 
     cover = effectiveness_cover_figure()
-    print(f"[1/5] cover figure            {cover.name}")
+    print(f"[1/6] cover figure            {cover.name}")
     prof_fig = profile_figure()
-    print(f"[2/5] profile figure          {prof_fig.name}")
+    print(f"[2/6] profile figure          {prof_fig.name}")
     gif_path, gif_frames, gif_size = animation_gif()
-    print(f"[3/5] animation               {gif_path.name} "
+    print(f"[3/6] animation               {gif_path.name} "
           f"({gif_frames} frames, {gif_size[0]}x{gif_size[1]} px)")
     csv_path, csv_rows, csv_max_residual = heat_balance_table()
-    print(f"[4/5] heat-balance table      {csv_path.name} ({csv_rows} rows)")
+    print(f"[4/6] heat-balance table      {csv_path.name} ({csv_rows} rows)")
+    conditioning, conditioning_paths = conditioning_benchmark()
+    print(f"[5/6] conditioning comparison  {len(conditioning['cases'])} cases, "
+          f"max error {conditioning['max_stable_error_K']:.3e} K")
     metrics = compute_metrics()
     tests = run_test_suite()
-    print(f"[5/5] pytest                  {tests['summary_line']}")
+    if tests["exit_code"] != 0:
+        raise RuntimeError("Verification tests failed; refusing to publish a success summary")
+    print(f"[6/6] pytest                  {tests['summary_line']}")
 
     artifacts = {}
-    for path in [cover, prof_fig, gif_path, csv_path]:
+    for path in [cover, prof_fig, gif_path, csv_path, RESULTS / "animation_profiles.csv", *conditioning_paths]:
         artifacts[path.name] = {"bytes": path.stat().st_size}
     artifacts[gif_path.name]["frames"] = gif_frames
     artifacts[gif_path.name]["pixel_size"] = list(gif_size)
@@ -409,6 +492,9 @@ def main():
         },
         "tests": tests,
         "metrics": metrics,
+        "conditioning": {"cases":len(conditioning["cases"]),
+                         "max_stable_error_K":conditioning["max_stable_error_K"],
+                         "max_legacy_error_K":conditioning["max_legacy_error_K"]},
         "documented_case": {
             "description": "counter-flow water/water case, "
                            "U = 800 W/(m^2 K), A = 6 m^2, C_h = 1200 W/K, "

@@ -21,8 +21,11 @@ temperature difference decays exponentially,
     dT(s) = dT(0) * exp(-k A_tot s),   k = U (1/C_h - 1/C_c),
 
 which degenerates to a constant difference when C_h = C_c. Integrating the
-hot-stream equation gives the profiles below; they reproduce the
-eps-NTU outlet temperatures exactly (verified in tests and
+hot-stream equation gives the profiles below. A normalized integral of a
+decaying exponential is evaluated from the better-conditioned boundary;
+the C_h > C_c branch starts at the hot outlet / cold inlet. This avoids
+amplifying a rounded-to-zero terminal difference at high NTU. Endpoints
+match the eps-NTU rating to floating-point precision (see tests and
 docs/verification.md).
 """
 from __future__ import annotations
@@ -73,26 +76,29 @@ def counter_flow_profile(
             "the closed-form temperature profile is implemented for counter "
             f"flow only; got flow={config.flow!r}"
         )
-    if not isinstance(n_points, (int, np.integer)) or n_points < 2:
+    if isinstance(n_points, (bool, np.bool_)) or not isinstance(n_points, (int, np.integer)) or n_points < 2:
         raise ValueError(f"n_points must be an integer >= 2; got {n_points!r}")
 
     res = solve_exchanger(config)
     c_h = config.C_h_W_K
     c_c = config.C_c_W_K
-    u = config.U_W_m2K
-    a_tot = config.A_m2
-
     s = np.linspace(0.0, 1.0, int(n_points))
-    d_t0 = config.T_h_in_K - res.T_c_out_K  # terminal difference at s = 0
-
-    if abs(c_h - c_c) <= 1.0e-12 * max(c_h, c_c):
-        # Equal capacity rates: constant terminal difference, linear profiles.
-        d_t = np.full_like(s, d_t0)
-        t_h = config.T_h_in_K - (u * a_tot * d_t0 / c_h) * s
+    # Evaluate a DECAYING exponential from the well-conditioned boundary.
+    # Normalize the integral of the gap; never form a tiny rounded terminal
+    # gap and multiply it by an exponentially growing factor.
+    b = res.ntu * ((max(c_h, c_c) - min(c_h, c_c)) / max(c_h, c_c))
+    coordinate = s if c_h <= c_c else 1.0 - s
+    if b == 0.0:
+        fraction = coordinate
     else:
-        k_a = u * a_tot * (1.0 / c_h - 1.0 / c_c)
-        d_t = d_t0 * np.exp(-k_a * s)
-        t_h = config.T_h_in_K - (c_c / (c_c - c_h)) * (d_t0 - d_t)
-    t_c = t_h - d_t
+        fraction = np.expm1(-b * coordinate) / np.expm1(-b)
+    hot_drop = res.duty_W / c_h
+    cold_rise = res.duty_W / c_c
+    if c_h <= c_c:
+        t_h = config.T_h_in_K - hot_drop * fraction
+        t_c = res.T_c_out_K - cold_rise * fraction
+    else:
+        t_h = res.T_h_out_K + hot_drop * fraction
+        t_c = config.T_c_in_K + cold_rise * fraction
 
     return CounterFlowProfile(s=s, T_h_K=t_h, T_c_K=t_c, result=res)

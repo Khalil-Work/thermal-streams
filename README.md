@@ -1,4 +1,9 @@
-# Thermal Streams
+# 🌡️ Thermal Streams
+
+**Heat-exchanger rating, conditioned temperature profiles and reproducible numerical checks.**
+
+[![tests](https://github.com/khalil-official/thermal-streams/actions/workflows/ci.yml/badge.svg)](https://github.com/khalil-official/thermal-streams/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ![Animated counter-flow temperature profiles growing with NTU](docs/results/counterflow_profiles_ntu.gif)
 
@@ -12,7 +17,13 @@ transfer area s in [0, 1] while the surface area grows so that NTU
 sweeps 0.25 -> 12 (geometric). The reported eps, duty and outlet
 temperatures are recomputed for every frame.*
 
-## Purpose and scope
+[▶ Open the 48-frame GIF](docs/results/counterflow_profiles_ntu.gif) ·
+[Every frame's temperature data](docs/results/animation_profiles.csv)
+
+The animation compares steady exchangers with increasing area; it is not
+a transient heating simulation. Temperatures are calculated for each NTU.
+
+## 🎯 Purpose and scope
 
 Thermal Streams is an original Python/NumPy implementation of
 heat-exchanger analysis by the effectiveness-NTU method:
@@ -31,10 +42,10 @@ heat-exchanger analysis by the effectiveness-NTU method:
 - an independent logarithmic mean temperature difference (LMTD)
   formulation used as the strongest cross-check;
 - analytic position-resolved counter-flow temperature profiles;
-- a verification suite (741 pytest items) and a results generator
+- a verification suite (770 parametrized pytest items, not experiments) and a results generator
   producing figures, a heat-balance table and the animation above.
 
-## Model summary
+## 🧮 Model summary
 
 ```
 C_r  = C_min / C_max            (0 <= C_r <= 1)
@@ -56,15 +67,17 @@ the same outlet temperatures — an independent mathematical route to the
 same answer. Full derivations, validity domains, symbols and units:
 [docs/model.md](docs/model.md).
 
-## Quick start
+## ⚡ Quick start
 
-```console
+```bash
 git clone https://github.com/khalil-official/thermal-streams.git
 cd thermal-streams
 python -m venv .venv
-.venv\Scripts\pip install -r requirements-dev.txt        (Linux/macOS: .venv/bin/pip)
-.venv\Scripts\python -m pytest -q                        -> 741 passed
-.venv\Scripts\python examples\run_verification.py        regenerates docs/results/
+# Windows: .venv\Scripts\activate
+# Linux/macOS: source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+python examples/run_verification.py
 ```
 
 Runtime requirements: `numpy==2.1.3`, `matplotlib==3.10.0`,
@@ -72,13 +85,13 @@ Runtime requirements: `numpy==2.1.3`, `matplotlib==3.10.0`,
 need `pytest==8.3.4` (`requirements-dev.txt`). CI runs the suite on
 ubuntu-latest / Python 3.12.
 
-## Architecture and API
+## 🧱 Architecture and API
 
 ```
 thermal_streams/
     core.py       # eps relations, validation, rating solver, LMTD
     profiles.py   # analytic counter-flow temperature profiles
-tests/            # 741 verification items (see docs/verification.md)
+tests/            # 770 verification items (see docs/verification.md)
 examples/run_verification.py   # regenerates every artifact in docs/results/
 docs/             # model.md, api.md, verification.md, results/
 ```
@@ -113,23 +126,43 @@ energy-balance residual = 2.91e-11 W
 
 Full API: [docs/api.md](docs/api.md).
 
-## Metrics (measured, not claimed)
+## 📊 Metrics from the recorded run
 
 | Metric | Value | How measured |
 |---|---|---|
-| Test suite | **741 passed**, 0 failed | `pytest -q`, this repository |
+| Test suite | **770 passed**, 0 failed | `pytest -q`, this repository |
 | Max energy-balance residual | **3.5e-10 W** (3.7e-14 relative) | 3000-case sweep, all 5 arrangements, NTU <= 100 |
 | eps-NTU vs LMTD duty agreement, counter flow | **2.8e-11** relative max | 528 cases, C_r 0.05-1 (incl. 1.0), NTU <= 15.8 |
 | eps-NTU vs LMTD duty agreement, parallel flow | 1.9e-12 relative max | 440 cases, well-conditioned range NTU <= 5 |
 | C_r = 0 anchor agreement | 1.2e-9 max abs deviation | 300 cases with C_max = 1e12 W/K stream |
 | Documented case | eps = 0.908110, Q = 70.83 kW | counter flow, NTU = 4, C_r = 0.6 |
-| Animation | 48 frames, 1000 x 600 px | verified with PIL after generation |
+| Profile agreement with 80-digit arithmetic | **5.7e-14 K** max absolute error | 15 cases: NTU 4/50/100, both capacity orientations, equal and near-equal rates |
+| Prior forward-evaluation error on the same cases | up to 65 K | Preserved explicitly as an obsolete comparison path |
+| Animation | 48 distinct frames, 1000 x 600 px | actual profile data saved at every station |
 
 Numbers are written by `examples/run_verification.py` into
 [docs/results/run_summary.json](docs/results/run_summary.json) at
 generation time.
 
-## Verification summary
+## 🔬 Why numerical conditioning matters
+
+![Before/after profile conditioning against an 80-digit reference](docs/results/conditioning_comparison.png)
+
+For the cold stream carrying C_min at NTU=100, the original forward
+evaluation rounded a tiny terminal temperature difference to zero and
+then amplified that loss of information. It returned a 90°C cold inlet
+instead of 25°C. The repaired method starts from the better-conditioned
+end and integrates a decaying exponential. Across the 15 saved cases,
+the largest temperature deviation from the 80-digit reference is
+5.7e-14 K. This is an equation/implementation check, not a physical
+accuracy claim. The independent RK4 tests also integrate in the decaying
+direction for both capacity assignments.
+
+[Comparison values](docs/results/conditioning_profiles.csv) ·
+[Case-by-case metrics](docs/results/conditioning_metrics.json) ·
+[Reference and obsolete comparison code](examples/stability_reference.py)
+
+## ✅ Verification summary
 
 - **Energy balance** closes exactly to roundoff on both streams for every
   configuration across the sweeps (largest residual 3.5e-10 W on duties
@@ -153,7 +186,7 @@ generation time.
 
 Details and the exact sweeps: [docs/verification.md](docs/verification.md).
 
-## Limitations
+## 🔎 Limitations
 
 No pressure drop, no fouling, no axial conduction, no ambient heat loss;
 constant properties and uniform U; no phase change except the C_r = 0
@@ -162,7 +195,7 @@ to the five implemented arrangements; LMTD route exact only for parallel
 and counter flow (no F-factor method). See the end of
 [docs/verification.md](docs/verification.md).
 
-## References (by title)
+## 📚 References
 
 - Incropera, DeWitt, Bergman & Lavine — *Fundamentals of Heat and Mass
   Transfer*.
@@ -171,3 +204,5 @@ and counter flow (no F-factor method). See the end of
 ## License
 
 MIT — see [LICENSE](LICENSE). Copyright (c) 2026 MOHAMMED AHMED.
+
+[Calendar metadata disclosure](docs/CALENDAR_HISTORY.md).

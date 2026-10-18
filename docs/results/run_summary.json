@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-10-17T22:27:20.084297+00:00",
+  "generated_utc": "2026-10-18T00:51:56.717449+00:00",
   "runtime": {
     "python": "3.13.5",
     "implementation": "CPython",
@@ -13,40 +13,45 @@
   },
   "tests": {
     "exit_code": 0,
-    "summary_line": "741 passed in 2.58s",
-    "passed": 741
+    "summary_line": "770 passed in 2.03s",
+    "passed": 770
   },
   "metrics": {
     "energy_balance_sweep_cases": 3000,
     "max_energy_balance_residual_W": 3.4924596548080444e-10,
     "max_energy_balance_residual_relative": 3.693393357375755e-14,
     "lmtd_counter_sweep_cases": 528,
-    "max_relative_lmtd_deviation_counter": 2.8011885185015828e-11,
+    "max_relative_lmtd_deviation_counter": 2.801207174808525e-11,
     "lmtd_parallel_sweep_cases": 440,
     "max_relative_lmtd_deviation_parallel": 1.8707522909307453e-12,
     "cr_zero_anchor_sweep_cases": 300,
     "cr_zero_anchor_max_abs_deviation": 1.2000000992884452e-09
   },
+  "conditioning": {
+    "cases": 15,
+    "max_stable_error_K": 5.684341886080802e-14,
+    "max_legacy_error_K": 65.0
+  },
   "documented_case": {
     "description": "counter-flow water/water case, U = 800 W/(m^2 K), A = 6 m^2, C_h = 1200 W/K, C_c = 2000 W/K, T_h_in = 90 degC, T_c_in = 25 degC",
     "ntu": 4.0,
     "c_r": 0.6,
-    "effectiveness": 0.9081100343387443,
+    "effectiveness": 0.9081100343387442,
     "duty_W": 70832.58267842204,
     "energy_balance_residual_W": 2.9103830456733704e-11,
-    "lmtd_duty_W": 70832.5826784222,
+    "lmtd_duty_W": 70832.58267842219,
     "T_h_out_degC": 30.972847767981648,
     "T_c_out_degC": 60.416291339211
   },
   "artifacts": {
     "effectiveness_vs_ntu.png": {
-      "bytes": 145336
+      "bytes": 145220
     },
     "counter_flow_temperature_profiles.png": {
-      "bytes": 109441
+      "bytes": 109379
     },
     "counterflow_profiles_ntu.gif": {
-      "bytes": 556588,
+      "bytes": 593310,
       "frames": 48,
       "pixel_size": [
         1000,
@@ -55,7 +60,19 @@
     },
     "heat_balance_table.csv": {
       "bytes": 31733
+    },
+    "animation_profiles.csv": {
+      "bytes": 853092
+    },
+    "conditioning_comparison.png": {
+      "bytes": 135815
+    },
+    "conditioning_profiles.csv": {
+      "bytes": 202493
+    },
+    "conditioning_metrics.json": {
+      "bytes": 4278
     }
   },
-  "wall_time_s": 25.804
+  "wall_time_s": 14.34
 }

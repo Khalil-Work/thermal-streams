@@ -47,7 +47,8 @@ ExchangerConfig(
 `__post_init__` validates everything: non-finite or non-positive numbers
 are rejected with a `ValueError` naming the parameter, and the inlet
 temperatures must satisfy `T_h_in_K > T_c_in_K` (positive inlet
-temperature difference).
+temperature difference). Float-convertible inputs are stored as normalized
+Python floats rather than leaving strings inside the frozen dataclass.
 
 ## `solve_exchanger(config) -> ExchangerResult`
 
@@ -58,6 +59,9 @@ Q       = eps * C_min * (T_h_in - T_c_in)
 T_h_out = T_h_in - Q / C_h
 T_c_out = T_c_in + Q / C_c
 ```
+
+Derived UA, NTU and duty must also be finite and strictly positive;
+unrepresentable overflow/underflow combinations raise `ValueError`.
 
 `ExchangerResult` (frozen dataclass) fields:
 
@@ -75,7 +79,8 @@ T_c_out = T_c_in + Q / C_c
 ## `log_mean_temperature_difference(delta_T1_K, delta_T2_K)`
 
 `(dT1 - dT2) / ln(dT1 / dT2)` with the equal-difference limit, evaluated
-via `log1p` for accuracy near `dT1 = dT2`. Both arguments must be finite
+via `log1p` near `dT1 = dT2` and log differences for wide ratios;
+the near-equal mean avoids overflow. Both arguments must be finite
 and positive (`ValueError` otherwise).
 
 ## `terminal_lmtd_K(result)` and `lmtd_duty_W(result)`
@@ -93,7 +98,10 @@ in [docs/model.md](model.md)). `CounterFlowProfile` fields: `s` (fractional
 transfer area from the hot inlet, 0 = hot in / cold out, 1 = hot out /
 cold in), `T_h_K`, `T_c_K` (arrays, length `n_points`), `result` (the
 `ExchangerResult` the profile reproduces). Raises `ValueError` for other
-arrangements or `n_points < 2`.
+arrangements, boolean/noninteger sampling or `n_points < 2`. The profile
+evaluates a decaying exponential from the well-conditioned boundary for
+either capacity orientation; see the normalized-integral equations in the
+model guide. High-NTU fields do not depend on a tiny subtracted inlet gap.
 
 ## Typical session
 

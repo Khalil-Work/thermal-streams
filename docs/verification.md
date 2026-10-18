@@ -1,6 +1,6 @@
 # Verification
 
-The test suite (`tests/`, 741 test items, `pytest -q`) establishes the
+The test suite (`tests/`, 770 test items, `pytest -q`) establishes the
 properties below. Expected values inside the tests are computed through
 independent code paths (plain `math.exp` arithmetic, analytic limits,
 or a hand-written RK4 integrator), not by calling the implementation
@@ -101,6 +101,33 @@ Also: the local temperature difference decays exponentially with transfer
 area, stream temperatures stay monotone and inside the inlet/outlet
 envelope, and non-counter arrangements are rejected.
 
+### Conditioning regressions — `tests/test_conditioning.py`
+
+The 29 added test cases cover the reproduced failure and adjacent contracts:
+
+- Fifteen full-field comparisons against an **80-digit Decimal reference**:
+  NTU in {4,50,100}, C_h/C_c assignments {1200/2000, 2000/1200,
+  1500/1500} and both orientations of a 1e-10 relative capacity difference.
+  Each field has 101 stations. Maximum recorded deviation is **5.7e-14 K**;
+  the test threshold is 2e-10 K. Endpoints, monotonicity, boundedness and
+  incremental energy balance are also checked.
+- Independent 10,000-step RK4 integration at NTU=100 for both capacity
+  assignments. It starts at the hot-inlet end when C_h<C_c and at the
+  cold-inlet end when C_h>C_c, so perturbations decay. Agreement threshold
+  is 2e-8 K. Integrating the growing direction would amplify roundoff and
+  give a misleading reference failure.
+- Three near-C_r=1 effectiveness checks against Decimal arithmetic, five
+  symmetric wide-scale LMTD cases (including 1e-300/1e300 and near 1e308),
+  normalization of float-convertible config inputs, and three explicit
+  errors for nonrepresentable derived UA/NTU/duty.
+
+The old forward implementation is retained only in the example reference
+module for comparison. On the same 15 cases its maximum error is **65 K**.
+`conditioning_metrics.json` and `conditioning_profiles.csv` retain the
+measured before/after values. The plot's error-axis display floor is
+1e-14 K; raw zeros are preserved in the CSV. These are parametrized
+equation checks, not 770 distinct physical experiments.
+
 ### (f) Input validation — `tests/test_validation.py`
 
 Clear `ValueError`s (naming the parameter and the offending value) for
@@ -114,9 +141,16 @@ non-positive inlet temperature difference, unknown arrangement names
 `examples/run_verification.py` regenerates everything in
 `docs/results/`: the eps-NTU cover figure, the documented-case
 counter-flow profile figure, a 48-frame animation of the profiles
-growing with NTU (1000 x 600 px, 8 fps), a 250-row heat-balance CSV over
-the full sweep, and `run_summary.json` with runtime versions and all
-metrics above.
+growing with NTU (1000 x 600 px, nominal 8 fps), a 250-row heat-balance
+CSV over the full sweep, and `run_summary.json` with runtime versions and
+all metrics above. GIF timing is quantized to 120 ms per frame.
+
+`animation_profiles.csv` saves all 11,568 station samples underlying the
+48-frame animation (frame, NTU, s, hot K, cold K). The animation is a
+steady area/NTU sweep, not a time-dependent startup solution. The new
+`conditioning_comparison.png` and its CSV/JSON compare all-field errors
+with the obsolete evaluation path and 80-digit reference. Figures and
+animation use white interiors without grids or shaded background fills.
 
 ## Limits of the verification
 
@@ -131,7 +165,9 @@ metrics above.
 - Configurations are limited to the five implemented arrangements; in
   particular the LMTD route is only exact for parallel and counter flow
   (no F-factor method for shell-and-tube or crossflow).
-- Floating-point conditioning, not physics, bounds two checks: the
-  parallel-flow LMTD sweep is restricted to NTU <= 5, and near-unity C_r
-  counter-flow values switch to the equal-capacity closed form at
-  |C_r - 1| <= 1e-9 (a discontinuity of order 1e-9 in eps).
+- Floating-point conditioning still bounds terminal-LMTD checks: the
+  parallel-flow sweep is restricted to NTU <= 5, and counter flow to
+  NTU <= 15.8. Rounded outlet differences may become zero at more extreme
+  NTU, causing the positive-argument LMTD helper to reject them. The stable
+  profile evaluator remains bounded; it does not restore lost terminal
+  differences or establish physical model accuracy beyond these assumptions.
