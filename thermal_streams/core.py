@@ -58,9 +58,6 @@ FLOWS = (
     FLOW_CROSSFLOW_C_MIN_MIXED,
 )
 
-#: |C_r - 1| at or below this the equal-capacity-rate closed form is used
-#: for counter flow (the general expression is a 0/0 limit form there).
-_CR_EQUALITY_TOL = 1.0e-9
 #: C_r at or below this the C_r = 0 (phase-change) anchor is used for the
 #: crossflow one-fluid-mixed relations (also 0/0 limit forms there).
 _CR_ZERO_TOL = 1.0e-15
@@ -91,11 +88,13 @@ def _eps_parallel(ntu: np.ndarray, c_r: np.ndarray) -> np.ndarray:
 def _eps_counter(ntu: np.ndarray, c_r: np.ndarray) -> np.ndarray:
     """eps = [1 - exp(-NTU (1 - C_r))] / [1 - C_r exp(-NTU (1 - C_r))], C_r < 1;
     eps = NTU / (1 + NTU) at C_r = 1."""
-    x = ntu * (1.0 - c_r)
-    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
-        general = -np.expm1(-x) / (1.0 - c_r * np.exp(-x))
-    equal_capacity = ntu / (1.0 + ntu)
-    return np.where(np.abs(c_r - 1.0) <= _CR_EQUALITY_TOL, equal_capacity, general)
+    delta = 1.0 - c_r
+    e = -np.expm1(-ntu * delta)
+    # Rewrite 1 - Cr*exp(-x) as delta + Cr*(1-exp(-x)); this avoids
+    # cancellation without approximating nearby unequal capacities as equal.
+    with np.errstate(divide="ignore", invalid="ignore"):
+        general = e / (delta + c_r * e)
+    return np.where(c_r == 1.0, ntu / (1.0 + ntu), general)
 
 
 def _eps_shell_and_tube(ntu: np.ndarray, c_r: np.ndarray) -> np.ndarray:
@@ -217,12 +216,10 @@ class ExchangerConfig:
     def __post_init__(self) -> None:
         if self.flow not in FLOWS:
             raise ValueError(f"flow must be one of {FLOWS}; got {self.flow!r}")
-        _require_positive_finite("U_W_m2K", self.U_W_m2K)
-        _require_positive_finite("A_m2", self.A_m2)
-        _require_positive_finite("C_h_W_K", self.C_h_W_K)
-        _require_positive_finite("C_c_W_K", self.C_c_W_K)
-        t_h = _require_positive_finite("T_h_in_K", self.T_h_in_K)
-        t_c = _require_positive_finite("T_c_in_K", self.T_c_in_K)
+        for name in ("U_W_m2K", "A_m2", "C_h_W_K", "C_c_W_K",
+                     "T_h_in_K", "T_c_in_K"):
+            object.__setattr__(self, name, _require_positive_finite(name, getattr(self, name)))
+        t_h, t_c = self.T_h_in_K, self.T_c_in_K
         if t_h <= t_c:
             raise ValueError(
                 "hot-inlet temperature must exceed cold-inlet temperature "
@@ -266,11 +263,12 @@ def solve_exchanger(config: ExchangerConfig) -> ExchangerResult:
     """
     c_min = min(config.C_h_W_K, config.C_c_W_K)
     c_max = max(config.C_h_W_K, config.C_c_W_K)
-    ntu = config.U_W_m2K * config.A_m2 / c_min
+    ua = _require_positive_finite("UA_W_K", config.U_W_m2K * config.A_m2)
+    ntu = _require_positive_finite("derived ntu", ua / c_min)
     c_r = c_min / c_max
     eps = effectiveness(ntu, c_r, config.flow)
     d_t_in = config.T_h_in_K - config.T_c_in_K
-    duty = eps * c_min * d_t_in
+    duty = _require_positive_finite("derived duty_W", eps * c_min * d_t_in)
     t_h_out = config.T_h_in_K - duty / config.C_h_W_K
     t_c_out = config.T_c_in_K + duty / config.C_c_W_K
     return ExchangerResult(
@@ -293,15 +291,17 @@ def solve_exchanger(config: ExchangerConfig) -> ExchangerResult:
 def log_mean_temperature_difference(delta_T1_K, delta_T2_K) -> float:
     """LMTD = (dT1 - dT2) / ln(dT1 / dT2), with the dT1 == dT2 limit.
 
-    Uses ``log1p`` so the expression stays accurate when the two terminal
-    differences are nearly equal. Both arguments must be finite and > 0.
+    Uses ``log1p`` near equality and log differences for wide ratios.
+    Both arguments must be finite and > 0; the argument order is immaterial.
     """
     d1 = _require_positive_finite("delta_T1_K", delta_T1_K)
     d2 = _require_positive_finite("delta_T2_K", delta_T2_K)
-    diff = d1 - d2
-    if abs(diff) <= 1.0e-12 * max(d1, d2):
-        return 0.5 * (d1 + d2)
-    return diff / math.log1p(diff / d2)
+    lo, hi = sorted((d1, d2))
+    diff = hi - lo
+    if diff <= 1.0e-12 * hi:
+        return lo + 0.5 * diff  # avoids overflow in (d1+d2)/2
+    log_ratio = math.log1p(diff / lo) if diff <= 0.5 * lo else math.log(hi) - math.log(lo)
+    return diff / log_ratio
 
 
 def terminal_lmtd_K(result: ExchangerResult) -> float:
@@ -335,4 +335,5 @@ def terminal_lmtd_K(result: ExchangerResult) -> float:
 def lmtd_duty_W(result: ExchangerResult) -> float:
     """Duty from the independent LMTD formulation: Q = U A dT_lm [W]."""
     cfg = result.config
-    return cfg.U_W_m2K * cfg.A_m2 * terminal_lmtd_K(result)
+    return _require_positive_finite("derived LMTD duty_W",
+                                    cfg.U_W_m2K * cfg.A_m2 * terminal_lmtd_K(result))

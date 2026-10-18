@@ -1,0 +1,142 @@
+{
+  "reference_decimal_digits": 80,
+  "cases": [
+    {
+      "ntu": 4.0,
+      "C_h_W_K": 1200.0,
+      "C_c_W_K": 2000.0,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 1.1368683772161603e-13,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 50.0,
+      "C_h_W_K": 1200.0,
+      "C_c_W_K": 2000.0,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 5.684341886080802e-14,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 100.0,
+      "C_h_W_K": 1200.0,
+      "C_c_W_K": 2000.0,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 5.684341886080802e-14,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 4.0,
+      "C_h_W_K": 2000.0,
+      "C_c_W_K": 1200.0,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 2.8421709430404007e-13,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 50.0,
+      "C_h_W_K": 2000.0,
+      "C_c_W_K": 1200.0,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 1.0270179359395115e-05,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 100.0,
+      "C_h_W_K": 2000.0,
+      "C_c_W_K": 1200.0,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 65.0,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 4.0,
+      "C_h_W_K": 1500.0,
+      "C_c_W_K": 1500.0,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 5.684341886080802e-14,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 50.0,
+      "C_h_W_K": 1500.0,
+      "C_c_W_K": 1500.0,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 1.1368683772161603e-12,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 100.0,
+      "C_h_W_K": 1500.0,
+      "C_c_W_K": 1500.0,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 1.7621459846850485e-12,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 4.0,
+      "C_h_W_K": 1500.0,
+      "C_c_W_K": 1500.00000015,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 5.442661262122783e-05,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 50.0,
+      "C_h_W_K": 1500.0,
+      "C_c_W_K": 1500.00000015,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 4.974635118060178e-05,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 100.0,
+      "C_h_W_K": 1500.0,
+      "C_c_W_K": 1500.00000015,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 5.103036659193094e-05,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 4.0,
+      "C_h_W_K": 1500.00000015,
+      "C_c_W_K": 1500.0,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 5.0824368543089804e-05,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 50.0,
+      "C_h_W_K": 1500.00000015,
+      "C_c_W_K": 1500.0,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 5.1734209932874364e-05,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    },
+    {
+      "ntu": 100.0,
+      "C_h_W_K": 1500.00000015,
+      "C_c_W_K": 1500.0,
+      "max_stable_profile_error_K": 5.684341886080802e-14,
+      "max_legacy_profile_error_K": 5.103036659193094e-05,
+      "hot_outlet_error_K": 0.0,
+      "cold_inlet_error_K": 0.0
+    }
+  ],
+  "max_stable_error_K": 5.684341886080802e-14,
+  "max_legacy_error_K": 65.0
+}
