@@ -10,13 +10,13 @@
 closed-form relations for five arrangements, an independent LMTD cross-check, and
 analytic counter-flow profiles — verified by 770 parametrized tests.**
 
-[![tests](https://github.com/khalil-official/thermal-streams/actions/workflows/ci.yml/badge.svg)](https://github.com/khalil-official/thermal-streams/actions/workflows/ci.yml)
+[![tests](https://github.com/khalil-work/thermal-streams/actions/workflows/ci.yml/badge.svg)](https://github.com/khalil-work/thermal-streams/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![python](https://img.shields.io/badge/python-3.12-blue.svg)](requirements.txt)
 [![tests](https://img.shields.io/badge/tests-770%20passing-brightgreen.svg)](tests)
 [![balance](https://img.shields.io/badge/energy%20residual-3.5e--10%20W-orange.svg)](docs/verification.md)
-[![repo stars](https://img.shields.io/github/stars/khalil-official/thermal-streams?style=flat&color=yellow)](https://github.com/khalil-official/thermal-streams/stargazers)
-[![last commit](https://img.shields.io/github/last-commit/khalil-official/thermal-streams?color=9cf)](https://github.com/khalil-official/thermal-streams/commits)
+[![repo stars](https://img.shields.io/github/stars/khalil-work/thermal-streams?style=flat&color=yellow)](https://github.com/khalil-work/thermal-streams/stargazers)
+[![last commit](https://img.shields.io/github/last-commit/khalil-work/thermal-streams?color=9cf)](https://github.com/khalil-work/thermal-streams/commits)
 
 [Quick start](#-quick-start) · [Model](#-model-summary) · [Animation](#%EF%B8%8F-results-gallery) · [Conditioning](#-why-numerical-conditioning-matters) · [References](#-references)
 
@@ -83,7 +83,7 @@ flowchart LR
 ## ⚡ Quick start
 
 ```bash
-git clone https://github.com/khalil-official/thermal-streams.git
+git clone https://github.com/khalil-work/thermal-streams.git
 cd thermal-streams
 python -m venv .venv
 # Windows: .venv\Scripts\activate
