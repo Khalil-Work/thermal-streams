@@ -70,8 +70,8 @@ domains, symbols and units: [docs/model.md](docs/model.md).
 
 ```mermaid
 flowchart LR
-    A[U, A, C_h, C_c, inlets] --> B{validate}
-    B -- ok --> C[NTU, C_r]
+    A[U, A, C_h, C_c, inlets] --> B{"validate"}
+    B -- ok --> C["NTU, C_r"]
     C --> D[eps = f NTU, C_r<br/>per arrangement]
     D --> E[Q = eps C_min ΔT_in]
     E --> F[outlets from<br/>stream energy balances]
