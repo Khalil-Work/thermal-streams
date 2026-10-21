@@ -238,6 +238,6 @@ Numbers are written by `examples/run_verification.py` into
 
 ## 🔑 License
 
-MIT — see [LICENSE](LICENSE). Copyright (c) 2026 MOHAMMED AHMED.
+MIT — see [LICENSE](LICENSE). Copyright (c) 2026 KHALIL.
 
 [Calendar metadata disclosure](docs/CALENDAR_HISTORY.md).
