@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/banner.svg" alt="Thermal Streams banner: counter-flow heat exchanger with hot and cold stream temperature profiles" width="100%">
+<img src="docs/banner.png" alt="Thermal Streams banner: counter-flow heat exchanger with hot and cold stream temperature profiles" width="100%">
 
 # 🌡️ Thermal Streams
 
