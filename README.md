@@ -18,7 +18,7 @@ analytic counter-flow profiles — verified by 770 parametrized tests.**
 [![repo stars](https://img.shields.io/github/stars/khalil-work/thermal-streams?style=flat&color=yellow)](https://github.com/khalil-work/thermal-streams/stargazers)
 [![last commit](https://img.shields.io/github/last-commit/khalil-work/thermal-streams?color=9cf)](https://github.com/khalil-work/thermal-streams/commits)
 
-[Quick start](#-quick-start) · [Model](#-model-summary) · [Animation](#%EF%B8%8F-results-gallery) · [Conditioning](#-why-numerical-conditioning-matters) · [References](#-references)
+[Homepage](https://khalil-work.github.io) · [Quick start](#-quick-start) · [Model](#-model-summary) · [Animation](#%EF%B8%8F-results-gallery) · [Conditioning](#-why-numerical-conditioning-matters) · [References](#-references)
 
 </div>
 
